@@ -1,5 +1,4 @@
-const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
-
+const BASE = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '')
 export async function uploadDocument(file, onProgress) {
   const formData = new FormData()
   formData.append('file', file)
