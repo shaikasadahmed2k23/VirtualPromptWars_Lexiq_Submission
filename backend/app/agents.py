@@ -20,10 +20,11 @@ _RULES = (
 _PROMPTS = {
     "qa": 'Answer the question using only the document excerpts. JSON: {"answer": str, '
     '"confidence": "high|medium|low", "citations": [short verbatim quotes]}.',
-    "clause": 'Extract the key clauses. JSON: {"clauses": [{"title": str, "type": str, '
-    '"text": short excerpt, "explanation": plain-language meaning}]}.',
-    "risk": 'Find risky or one-sided terms. JSON: {"overall_risk": "low|medium|high", '
-    '"risks": [{"clause": str, "level": "low|medium|high", "issue": str, "suggestion": str}]}.',
+    "clause": 'Extract the key clauses. JSON: {"clauses": [{"type": str, "title": str, '
+    '"content": str, "importance": "low|medium|high", "explanation": str}]}.',
+    "risk": 'Find risky or one-sided terms. JSON: {"overall_risk": "low|medium|high|critical", '
+    '"risks": [{"category": str, "severity": "low|medium|high|critical", "clause": str, '
+    '"description": str, "mitigation": str}]}.',
     "summary": 'Summarize the document. JSON: {"summary": str, "key_points": [str], '
     '"parties": [str]}.',
     "compare": 'Compare Document A and Document B. JSON: {"summary": str, "differences": '
