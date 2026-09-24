@@ -15,7 +15,17 @@ const NEEDS_DOCUMENT = new Set(['qa', 'clause', 'risk', 'summary'])
 export default function App() {
   const [page, setPage] = useState('upload')
   const [doc, setDoc] = useState(null)
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('lexiq-theme')
+    if (saved) return saved === 'dark'
+    return false
+  })
   const chat = useChat()
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light')
+    localStorage.setItem('lexiq-theme', darkMode ? 'dark' : 'light')
+  }, [darkMode])
 
   useEffect(() => {
     fetchStats()
@@ -60,6 +70,14 @@ export default function App() {
   return (
     <div className="app">
       <a className="skip-link" href="#main">Skip to content</a>
+      <button
+        type="button"
+        className="theme-toggle"
+        aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+        onClick={() => setDarkMode((v) => !v)}
+      >
+        {darkMode ? '☀️ Light' : '🌙 Dark'}
+      </button>
       <Sidebar page={page} onNavigate={setPage} doc={doc} />
       <main id="main" className="main">{renderPage()}</main>
     </div>
