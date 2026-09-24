@@ -12,9 +12,11 @@ ALLOWED_ORIGINS = [
     for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
     if o.strip()
 ]
+
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
 
 CHUNK_WORDS = 250
 CHUNK_OVERLAP = 50
 TOP_K = 5
 CONTEXT_CHAR_LIMIT = 12000  # keeps prompts inside Groq free-tier limits
+ALLOWED_ORIGIN_REGEX = os.getenv("ALLOWED_ORIGIN_REGEX") or None
