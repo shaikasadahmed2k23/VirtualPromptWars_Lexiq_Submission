@@ -5,18 +5,19 @@ import QAPage from './pages/QAPage.jsx'
 import ClausePage from './pages/ClausePage.jsx'
 import RiskPage from './pages/RiskPage.jsx'
 import SummaryPage from './pages/SummaryPage.jsx'
+import ComparePage from './pages/ComparePage.jsx'
 import { fetchStats } from './utils/api.js'
 
 export default function App() {
   const [activePage, setActivePage] = useState('upload')
-  const [stats, setStats] = useState({ total_chunks: 0 })
+  const [stats, setStats] = useState({ chunks: 0, documents_loaded: 0 })
   const [docReady, setDocReady] = useState(false)
 
   useEffect(() => {
     fetchStats()
       .then(s => {
         setStats(s)
-        if (s.total_chunks > 0) setDocReady(true)
+        if ((s.chunks ?? 0) > 0) setDocReady(true)
       })
       .catch(() => {})
   }, [])
@@ -25,7 +26,7 @@ export default function App() {
     fetchStats()
       .then(s => {
         setStats(s)
-        if (s.total_chunks > 0) setDocReady(true)
+        if ((s.chunks ?? 0) > 0) setDocReady(true)
       })
       .catch(() => {})
   }
@@ -36,6 +37,7 @@ export default function App() {
     clause: <ClausePage />,
     risk: <RiskPage />,
     summary: <SummaryPage />,
+    compare: <ComparePage />,
   }
 
   return (

@@ -9,3 +9,4 @@ venv/
 chroma_db/
 *.sqlite3
 *.log
+!.env.example

@@ -6,6 +6,7 @@ const NAV = [
   { id: 'clause',  label: 'Extract Clauses',    icon: ClauseIcon  },
   { id: 'risk',    label: 'Risk Analysis',      icon: RiskIcon    },
   { id: 'summary', label: 'Summarize',          icon: SummaryIcon },
+  { id: 'compare', label: 'Compare Docs',       icon: CompareIcon },
 ]
 
 export default function Sidebar({ activePage, setActivePage, stats, docReady }) {
@@ -65,7 +66,7 @@ export default function Sidebar({ activePage, setActivePage, stats, docReady }) 
         }} />
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
           {docReady
-            ? `${stats.total_chunks} chunks indexed`
+            ? `${stats.chunks || 0} chunks indexed`
             : 'No document loaded'}
         </span>
       </div>
@@ -165,6 +166,17 @@ function SummaryIcon({ size, color }) {
       <line x1="21" y1="6" x2="3" y2="6"/>
       <line x1="21" y1="14" x2="3" y2="14"/>
       <line x1="21" y1="18" x2="7" y2="18"/>
+    </svg>
+  )
+}
+
+function CompareIcon({ size, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 7h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"/>
+      <path d="M9 10h6"/>
+      <path d="M9 14h6"/>
+      <path d="M7 4h10"/>
     </svg>
   )
 }

@@ -1,4 +1,4 @@
-const BASE = 'http://127.0.0.1:8000'
+const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
 export async function uploadDocument(file, onProgress) {
   const formData = new FormData()
@@ -43,5 +43,23 @@ export async function queryAgent(query, agentType) {
 export async function fetchStats() {
   const res = await fetch(`${BASE}/stats`)
   if (!res.ok) throw new Error('Could not reach backend')
+  return res.json()
+}
+
+export async function compareDocuments(fileA, fileB) {
+  const formData = new FormData()
+  formData.append('file_a', fileA)
+  formData.append('file_b', fileB)
+
+  const res = await fetch(`${BASE}/compare`, {
+    method: 'POST',
+    body: formData,
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || `Compare failed: ${res.status}`)
+  }
+
   return res.json()
 }
