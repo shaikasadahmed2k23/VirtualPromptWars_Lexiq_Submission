@@ -1,0 +1,56 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg:        #0F1117;
+  --surface:   #1A1D27;
+  --surface2:  #21263A;
+  --border:    #2A2F42;
+  --gold:      #C9A84C;
+  --gold-dim:  #8A6E2F;
+  --blue:      #4A7FA5;
+  --blue-dim:  #2D5470;
+  --text:      #E8E6E1;
+  --text-muted:#8A8890;
+  --text-dim:  #5A5865;
+  --red:       #C0392B;
+  --orange:    #D35400;
+  --green:     #27AE60;
+  --yellow:    #F39C12;
+}
+
+html, body, #root {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+}
+
+button {
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+}
+
+textarea, input {
+  font-family: 'Inter', sans-serif;
+}
