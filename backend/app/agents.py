@@ -49,6 +49,7 @@ def normalize_agent(agent_type: str) -> str:
 
 
 def _user_message(context: str, request: str) -> str:
+    """Wrap document context and the user's request in a single prompt."""
     return f"<document>\n{context}\n</document>\n\nRequest: {request}"
 
 

@@ -13,6 +13,7 @@ _store: "OrderedDict[tuple, dict]" = OrderedDict()
 
 
 def _key(*parts: str) -> tuple:
+    """Normalize cache-key parts so lookups are case- and whitespace-insensitive."""
     return tuple(p.strip().lower() for p in parts)
 
 
@@ -35,4 +36,5 @@ def put(*parts: str, value: dict) -> None:
 
 
 def clear() -> None:
+    """Empty the cache (used between test runs)."""
     _store.clear()

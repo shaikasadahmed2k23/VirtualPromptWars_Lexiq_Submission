@@ -76,6 +76,7 @@ class DocumentStore:
         self._latest: str | None = None
 
     def add(self, filename: str, data: bytes) -> Document:
+        """Parse, index and store a new document as the most recent upload."""
         doc = Document(filename, extract_text(filename, data))
         self._docs[doc.doc_id] = doc
         self._latest = doc.doc_id
@@ -88,9 +89,11 @@ class DocumentStore:
         return self._docs.get(doc_id)
 
     def latest(self) -> Document | None:
+        """Return the most recently uploaded document, if any."""
         return self._docs.get(self._latest) if self._latest else None
 
     def clear(self) -> None:
+        """Remove all documents (used between test runs)."""
         self._docs.clear()
         self._latest = None
 

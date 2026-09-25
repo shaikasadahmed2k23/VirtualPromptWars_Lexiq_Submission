@@ -1,6 +1,8 @@
 """LexIQ FastAPI application."""
 from __future__ import annotations
 
+from typing import Awaitable, Callable
+
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -21,6 +23,8 @@ app.add_middleware(
 
 
 class QueryRequest(BaseModel):
+    """Body of a POST /query request."""
+
     query: str = Field(default="", max_length=2000)
     agent_type: str = Field(default="qa", max_length=40)
     doc_id: str | None = Field(default=None, max_length=32)
@@ -38,19 +42,32 @@ async def _read_upload(file: UploadFile) -> tuple[str, bytes]:
 def _resolve_doc(doc_id: str | None) -> Document:
     """Find the document for this request: by id if given, else the latest upload."""
     doc = store.get(doc_id) if doc_id else store.latest()
-    if doc is None:
-        detail = "Document not found. It may have expired — please upload it again." if doc_id else "Upload a document first."
-        raise HTTPException(400, detail)
-    return doc
+    if doc is not None:
+        return doc
+    if doc_id:
+        raise HTTPException(400, "Document not found. It may have expired — please upload it again.")
+    raise HTTPException(400, "Upload a document first.")
+
+
+async def _run_agent_call(call: Callable[[], Awaitable[dict]]) -> dict:
+    """Run an agent call, translating known failures into HTTP errors."""
+    try:
+        return await call()
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except LLMError as exc:
+        raise HTTPException(502, str(exc)) from exc
 
 
 @app.get("/health")
 async def health() -> dict:
+    """Liveness check used by uptime monitors and the hosting platform."""
     return {"status": "ok"}
 
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)) -> dict:
+    """Parse and index a PDF or TXT file, returning its doc_id for later requests."""
     filename, data = await _read_upload(file)
     try:
         doc = store.add(filename, data)
@@ -66,34 +83,35 @@ async def upload(file: UploadFile = File(...)) -> dict:
 
 @app.post("/query")
 async def query(req: QueryRequest) -> dict:
+    """Run one of the five agents (qa, clause, risk, summary) over a stored document."""
     doc = _resolve_doc(req.doc_id)
-    try:
+
+    async def call() -> dict:
         name, result = await run_agent(req.agent_type, doc, req.query)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    except LLMError as exc:
-        raise HTTPException(502, str(exc)) from exc
-    return {"agent_type": name, **result}
+        return {"agent_type": name, **result}
+
+    return await _run_agent_call(call)
 
 
 @app.post("/compare")
 async def compare(
     file_a: UploadFile = File(...), file_b: UploadFile = File(...)
 ) -> dict:
-    try:
-        name_a, data_a = await _read_upload(file_a)
-        name_b, data_b = await _read_upload(file_b)
+    """Compare two freshly uploaded documents and return their key differences."""
+    name_a, data_a = await _read_upload(file_a)
+    name_b, data_b = await _read_upload(file_b)
+
+    async def call() -> dict:
         text_a, text_b = extract_text(name_a, data_a), extract_text(name_b, data_b)
         result = await compare_documents(name_a, text_a, name_b, text_b)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    except LLMError as exc:
-        raise HTTPException(502, str(exc)) from exc
-    return {"agent_type": "compare", **result}
+        return {"agent_type": "compare", **result}
+
+    return await _run_agent_call(call)
 
 
 @app.get("/stats")
 async def stats(doc_id: str | None = None) -> dict:
+    """Report server status and, optionally, the state of one specific document."""
     doc = store.get(doc_id) if doc_id else store.latest()
     return {
         "documents_loaded": len(store),
