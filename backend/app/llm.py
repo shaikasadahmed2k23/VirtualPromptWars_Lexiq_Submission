@@ -30,13 +30,19 @@ async def complete_json(system: str, user: str) -> dict:
         resp = await _get_client().chat.completions.create(
             model=config.GROQ_MODEL,
             temperature=0.1,
+            max_tokens=1024,
+            timeout=20,
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
         )
+    except groq.APIStatusError as exc:
+        logger.error("Groq API error: status=%s body=%s", exc.status_code, exc.body)
+        raise LLMError("The AI service is temporarily unavailable.") from exc
     except groq.APIError as exc:
+        logger.error("Groq connection error: %s", exc)
         raise LLMError("The AI service is temporarily unavailable.") from exc
     raw = resp.choices[0].message.content or "{}"
     try:
