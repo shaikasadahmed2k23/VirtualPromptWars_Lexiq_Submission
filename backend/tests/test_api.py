@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app import cache, config
+from app import cache, config, ratelimit
 from app.main import app
 from app.store import store
 
@@ -13,6 +13,7 @@ SAMPLE = b"This lease runs for 12 months. Rent is 10000 per month. Tenant pays a
 def _reset(monkeypatch):
     store.clear()
     cache.clear()
+    ratelimit.clear()
 
     calls = {"count": 0}
 
@@ -133,3 +134,15 @@ def test_repeated_query_is_served_from_cache(_reset):
     assert first.get("from_cache") is False
     assert second.get("from_cache") is True
     assert _reset["count"] == 1
+
+
+def test_upload_rejects_fake_pdf():
+    res = _upload("fake.pdf", b"this is not really a pdf")
+    assert res.status_code == 400
+
+
+def test_rate_limit_blocks_excess_requests(monkeypatch):
+    monkeypatch.setattr(config, "RATE_LIMIT_PER_MINUTE", 2)
+    assert _upload("a.txt", SAMPLE).status_code == 200
+    assert _upload("b.txt", SAMPLE).status_code == 200
+    assert _upload("c.txt", SAMPLE).status_code == 429

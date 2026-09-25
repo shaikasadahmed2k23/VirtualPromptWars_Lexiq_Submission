@@ -23,6 +23,8 @@ def extract_text(filename: str, data: bytes) -> str:
     """Extract plain text from a PDF or TXT upload."""
     name = filename.lower()
     if name.endswith(".pdf"):
+        if not data.startswith(b"%PDF-"):
+            raise ValueError("This file has a .pdf name but isn't a valid PDF.")
         try:
             reader = PdfReader(io.BytesIO(data))
             text = "\n".join((page.extract_text() or "") for page in reader.pages)

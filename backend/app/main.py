@@ -3,16 +3,31 @@ from __future__ import annotations
 
 from typing import Awaitable, Callable
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field
 
-from app import config
+from app import config, ratelimit
 from app.agents import compare_documents, run_agent
 from app.llm import LLMError
+from app.ratelimit import enforce_rate_limit
 from app.store import Document, extract_text, store
 
 app = FastAPI(title="LexIQ API", version="1.0.0")
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
+
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    """Attach standard defensive headers to every response."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer-when-downgrade"
+    return response
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=config.ALLOWED_ORIGINS,
@@ -65,7 +80,7 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
-@app.post("/upload")
+@app.post("/upload", dependencies=[Depends(enforce_rate_limit)])
 async def upload(file: UploadFile = File(...)) -> dict:
     """Parse and index a PDF or TXT file, returning its doc_id for later requests."""
     filename, data = await _read_upload(file)
@@ -81,7 +96,7 @@ async def upload(file: UploadFile = File(...)) -> dict:
     }
 
 
-@app.post("/query")
+@app.post("/query", dependencies=[Depends(enforce_rate_limit)])
 async def query(req: QueryRequest) -> dict:
     """Run one of the five agents (qa, clause, risk, summary) over a stored document."""
     doc = _resolve_doc(req.doc_id)
@@ -93,7 +108,7 @@ async def query(req: QueryRequest) -> dict:
     return await _run_agent_call(call)
 
 
-@app.post("/compare")
+@app.post("/compare", dependencies=[Depends(enforce_rate_limit)])
 async def compare(
     file_a: UploadFile = File(...), file_b: UploadFile = File(...)
 ) -> dict:
