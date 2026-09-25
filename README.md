@@ -102,10 +102,14 @@ compare, and navigate** legal documents. LexIQ maps directly onto that:
 
 ## Efficiency
 
-- Retrieval uses BM25 (`rank_bm25`), not a heavy embedding model — fast indexing and low memory on a free-tier host.
-- Repeated questions for the same document are served from an in-memory cache instead of re-calling the LLM.
-- Responses are GZip-compressed.
-- PDF parsing and document indexing run in a background thread (`asyncio.to_thread`), so one user's upload never blocks other users' requests on the same server.
+- **Response caching:** repeated questions for the same document are served from an in-memory LRU cache (bounded to 200 entries) instead of re-calling the LLM.
+- **Bounded context:** document text is capped at 12,000 characters per LLM call, and generation is capped at `max_tokens=2048`, keeping every request predictable in cost and latency.
+- **Controlled retry with backoff:** a single retry with a short backoff handles transient provider errors (rate limits, 5xx) without silently failing or looping indefinitely.
+- **Request timeout:** every LLM call has an explicit 20-second timeout so one slow request can never hang the server.
+- **Lightweight retrieval:** BM25 (`rank_bm25`), not a heavy embedding model — fast indexing and low memory on a free-tier host.
+- **Non-blocking uploads:** PDF parsing and document indexing run in a background thread (`asyncio.to_thread`), so one user's upload never blocks other users' requests.
+- **GZip compression** on all responses.
+- **Fast, right-sized model:** `openai/gpt-oss-20b` with `reasoning_effort="low"` minimizes hidden reasoning-token overhead for short, structured JSON replies.
 
 ## Known limitations
 
