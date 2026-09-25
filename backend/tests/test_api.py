@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app import config
+from app import cache, config
 from app.main import app
 from app.store import store
 
@@ -12,11 +12,16 @@ SAMPLE = b"This lease runs for 12 months. Rent is 10000 per month. Tenant pays a
 @pytest.fixture(autouse=True)
 def _reset(monkeypatch):
     store.clear()
+    cache.clear()
+
+    calls = {"count": 0}
 
     async def fake_llm(system, user):
+        calls["count"] += 1
         return {"answer": "ok"}
 
     monkeypatch.setattr("app.agents.complete_json", fake_llm)
+    return calls
 
 
 def _upload(name="lease.txt", data=SAMPLE):
@@ -118,3 +123,13 @@ def test_stats_with_doc_id_returns_that_document():
     _upload("b.txt", SAMPLE)
     res = client.get(f"/stats?doc_id={doc_a['doc_id']}")
     assert res.json()["active_document"] == "a.txt"
+
+
+def test_repeated_query_is_served_from_cache(_reset):
+    _upload()
+    payload = {"query": "What is the rent?", "agent_type": "qa"}
+    first = client.post("/query", json=payload).json()
+    second = client.post("/query", json=payload).json()
+    assert first.get("from_cache") is False
+    assert second.get("from_cache") is True
+    assert _reset["count"] == 1

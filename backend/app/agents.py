@@ -1,7 +1,9 @@
 """LexIQ agents: each is a focused prompt plus a JSON output contract."""
 from __future__ import annotations
 
-from app import config
+import hashlib
+
+from app import cache, config
 from app.llm import complete_json
 from app.store import Document
 
@@ -53,21 +55,35 @@ def _user_message(context: str, request: str) -> str:
 async def run_agent(agent_type: str, doc: Document, query: str = "") -> tuple[str, dict]:
     """Run one agent over a document; returns (canonical_name, result)."""
     name = normalize_agent(agent_type)
-    if name == "qa":
-        if not query.strip():
-            raise ValueError("Please enter a question.")
-        context = "\n\n---\n\n".join(doc.search(query, config.TOP_K))
-    else:
-        context = doc.text[: config.CONTEXT_CHAR_LIMIT]
+    if name == "qa" and not query.strip():
+        raise ValueError("Please enter a question.")
+
+    cache_key = (doc.doc_id, name, query.strip() or "_default")
+    cached = cache.get(*cache_key)
+    if cached is not None:
+        return name, {**cached, "from_cache": True}
+
+    context = (
+        "\n\n---\n\n".join(doc.search(query, config.TOP_K))
+        if name == "qa"
+        else doc.text[: config.CONTEXT_CHAR_LIMIT]
+    )
     data = await complete_json(
         f"{_RULES}\n{_PROMPTS[name]}",
         _user_message(context, query.strip() or "Analyze the document."),
     )
-    return name, {**data, "disclaimer": DISCLAIMER}
+    result = {**data, "disclaimer": DISCLAIMER}
+    cache.put(*cache_key, value=result)
+    return name, {**result, "from_cache": False}
 
 
 async def compare_documents(name_a: str, text_a: str, name_b: str, text_b: str) -> dict:
     """Compare two documents clause by clause."""
+    digest = hashlib.sha1(f"{text_a}\x00{text_b}".encode()).hexdigest()
+    cached = cache.get("compare", digest)
+    if cached is not None:
+        return {**cached, "from_cache": True}
+
     half = config.CONTEXT_CHAR_LIMIT // 2
     context = (
         f"Document A ({name_a}):\n{text_a[:half]}\n\n"
@@ -77,4 +93,6 @@ async def compare_documents(name_a: str, text_a: str, name_b: str, text_b: str) 
         f"{_RULES}\n{_PROMPTS['compare']}",
         _user_message(context, "Compare the two documents."),
     )
-    return {**data, "disclaimer": DISCLAIMER}
+    result = {**data, "disclaimer": DISCLAIMER}
+    cache.put("compare", digest, value=result)
+    return {**result, "from_cache": False}
