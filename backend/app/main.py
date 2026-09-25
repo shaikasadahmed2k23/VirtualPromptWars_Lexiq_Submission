@@ -1,6 +1,7 @@
 """LexIQ FastAPI application."""
 from __future__ import annotations
 
+import asyncio
 from typing import Awaitable, Callable
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
@@ -85,7 +86,7 @@ async def upload(file: UploadFile = File(...)) -> dict:
     """Parse and index a PDF or TXT file, returning its doc_id for later requests."""
     filename, data = await _read_upload(file)
     try:
-        doc = store.add(filename, data)
+        doc = await asyncio.to_thread(store.add, filename, data)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     return {
@@ -117,7 +118,8 @@ async def compare(
     name_b, data_b = await _read_upload(file_b)
 
     async def call() -> dict:
-        text_a, text_b = extract_text(name_a, data_a), extract_text(name_b, data_b)
+        text_a = await asyncio.to_thread(extract_text, name_a, data_a)
+        text_b = await asyncio.to_thread(extract_text, name_b, data_b)
         result = await compare_documents(name_a, text_a, name_b, text_b)
         return {"agent_type": "compare", **result}
 

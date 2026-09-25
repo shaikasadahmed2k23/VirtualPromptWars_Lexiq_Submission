@@ -100,6 +100,13 @@ compare, and navigate** legal documents. LexIQ maps directly onto that:
 | Navigate | Key Clauses, Risk Analysis |
 | Access | Plain-language explanations throughout, no legal jargon, clear disclaimers |
 
+## Efficiency
+
+- Retrieval uses BM25 (`rank_bm25`), not a heavy embedding model — fast indexing and low memory on a free-tier host.
+- Repeated questions for the same document are served from an in-memory cache instead of re-calling the LLM.
+- Responses are GZip-compressed.
+- PDF parsing and document indexing run in a background thread (`asyncio.to_thread`), so one user's upload never blocks other users' requests on the same server.
+
 ## Known limitations
 
 - In-memory storage only; a backend restart clears all uploaded documents.
