@@ -30,8 +30,9 @@ async def complete_json(system: str, user: str) -> dict:
         resp = await _get_client().chat.completions.create(
             model=config.GROQ_MODEL,
             temperature=0.1,
-            max_tokens=1024,
+            max_tokens=2048,
             timeout=20,
+            reasoning_effort="low",
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": system},
