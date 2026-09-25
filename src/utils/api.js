@@ -39,20 +39,21 @@ export function uploadDocument(file, onProgress) {
   })
 }
 
-export function queryAgent(query, agentType) {
+export function queryAgent(query, agentType, docId) {
   return request(
     '/query',
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, agent_type: agentType }),
+      body: JSON.stringify({ query, agent_type: agentType, doc_id: docId || null }),
     },
     'Request failed',
   )
 }
 
-export function fetchStats() {
-  return request('/stats', undefined, 'Could not reach backend')
+export function fetchStats(docId) {
+  const query = docId ? `?doc_id=${encodeURIComponent(docId)}` : ''
+  return request(`/stats${query}`, undefined, 'Could not reach backend')
 }
 
 export function compareDocuments(fileA, fileB) {

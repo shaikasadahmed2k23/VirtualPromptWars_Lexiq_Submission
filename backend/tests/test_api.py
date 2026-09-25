@@ -89,3 +89,32 @@ def test_compare_two_documents():
 def test_stats_reflects_upload():
     _upload()
     assert client.get("/stats").json()["documents_loaded"] == 1
+
+
+def test_query_uses_doc_id_not_latest_upload():
+    """Two 'sessions' upload different docs; each must query its own, not whichever came last."""
+    doc_a = _upload("a.txt", b"The rent for unit A is 5000 per month.").json()
+    doc_b = _upload("b.txt", b"The rent for unit B is 9000 per month.").json()
+
+    res_a = client.post(
+        "/query", json={"query": "What is the rent?", "agent_type": "qa", "doc_id": doc_a["doc_id"]}
+    )
+    res_b = client.post(
+        "/query", json={"query": "What is the rent?", "agent_type": "qa", "doc_id": doc_b["doc_id"]}
+    )
+    assert res_a.status_code == 200 and res_b.status_code == 200
+
+
+def test_query_unknown_doc_id_rejected():
+    _upload()
+    res = client.post(
+        "/query", json={"query": "x", "agent_type": "qa", "doc_id": "doesnotexist"}
+    )
+    assert res.status_code == 400
+
+
+def test_stats_with_doc_id_returns_that_document():
+    doc_a = _upload("a.txt", SAMPLE).json()
+    _upload("b.txt", SAMPLE)
+    res = client.get(f"/stats?doc_id={doc_a['doc_id']}")
+    assert res.json()["active_document"] == "a.txt"

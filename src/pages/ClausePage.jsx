@@ -20,7 +20,7 @@ function ClauseItem({ clause }) {
   )
 }
 
-export default function ClausePage() {
+export default function ClausePage({ doc }) {
   const [scope, setScope] = useState('')
   const { loading, result, error, run } = useAgent('clause', DEFAULT_QUERY)
   const clauses = Array.isArray(result?.clauses) ? result.clauses : []
@@ -34,7 +34,7 @@ export default function ClausePage() {
       <Card>
         <Field id="scope" label="Focus (optional)" value={scope} onChange={setScope}
           placeholder="e.g. Only clauses about payment and penalties. Leave blank for all key clauses." />
-        <Button onClick={() => run(scope)} loading={loading}>Extract clauses</Button>
+        <Button onClick={() => run(scope, doc?.doc_id)} loading={loading}>Extract clauses</Button>
       </Card>
       <ErrorBanner message={error} />
       {result && (

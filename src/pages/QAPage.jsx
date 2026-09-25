@@ -52,7 +52,7 @@ export default function QAPage({ doc, chat }) {
 
   const submit = () => {
     if (!draft.trim() || busy) return
-    send(draft)
+    send(draft, doc?.doc_id)
     setDraft('')
   }
 
@@ -82,7 +82,7 @@ export default function QAPage({ doc, chat }) {
               <p>Answers come only from the file you uploaded, with the supporting text shown.</p>
               <div className="chips">
                 {SUGGESTIONS.map((s) => (
-                  <button key={s} className="chip" onClick={() => send(s)}>{s}</button>
+                  <button key={s} className="chip" onClick={() => send(s, doc?.doc_id)}>{s}</button>
                 ))}
               </div>
             </div>

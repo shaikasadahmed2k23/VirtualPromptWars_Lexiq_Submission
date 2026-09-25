@@ -22,7 +22,7 @@ function RiskItem({ risk }) {
   )
 }
 
-export default function RiskPage() {
+export default function RiskPage({ doc }) {
   const [focus, setFocus] = useState('')
   const { loading, result, error, run } = useAgent('risk', DEFAULT_QUERY)
   const risks = Array.isArray(result?.risks) ? [...result.risks].sort((a, b) => rank(a) - rank(b)) : []
@@ -36,7 +36,7 @@ export default function RiskPage() {
       <Card>
         <Field id="focus" label="Focus (optional)" value={focus} onChange={setFocus}
           placeholder="e.g. Anything that could cost me money. Leave blank for a full review." />
-        <Button onClick={() => run(focus)} loading={loading}>Analyze risks</Button>
+        <Button onClick={() => run(focus, doc?.doc_id)} loading={loading}>Analyze risks</Button>
       </Card>
       <ErrorBanner message={error} />
       {result && (

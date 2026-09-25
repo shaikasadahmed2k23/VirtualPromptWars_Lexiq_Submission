@@ -4,7 +4,7 @@ import { useAgent } from '../hooks/useAgent.js'
 
 const DEFAULT_QUERY = 'Summarize this legal document in plain language'
 
-export default function SummaryPage() {
+export default function SummaryPage({ doc }) {
   const [instruction, setInstruction] = useState('')
   const [copied, setCopied] = useState(false)
   const { loading, result, error, run } = useAgent('summary', DEFAULT_QUERY)
@@ -31,7 +31,7 @@ export default function SummaryPage() {
       <Card>
         <Field id="instruction" label="Instruction (optional)" value={instruction} onChange={setInstruction}
           placeholder="e.g. Focus on what the tenant must do. Leave blank for a full summary." />
-        <Button onClick={() => run(instruction)} loading={loading}>Generate summary</Button>
+        <Button onClick={() => run(instruction, doc?.doc_id)} loading={loading}>Generate summary</Button>
       </Card>
       <ErrorBanner message={error} />
       {result && (

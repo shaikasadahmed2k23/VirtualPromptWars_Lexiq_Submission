@@ -8,10 +8,9 @@ from pydantic import BaseModel, Field
 from app import config
 from app.agents import compare_documents, run_agent
 from app.llm import LLMError
-from app.store import extract_text, store
+from app.store import Document, extract_text, store
 
 app = FastAPI(title="LexIQ API", version="1.0.0")
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=config.ALLOWED_ORIGINS,
@@ -24,6 +23,7 @@ app.add_middleware(
 class QueryRequest(BaseModel):
     query: str = Field(default="", max_length=2000)
     agent_type: str = Field(default="qa", max_length=40)
+    doc_id: str | None = Field(default=None, max_length=32)
 
 
 async def _read_upload(file: UploadFile) -> tuple[str, bytes]:
@@ -33,6 +33,15 @@ async def _read_upload(file: UploadFile) -> tuple[str, bytes]:
     if len(data) > limit:
         raise HTTPException(413, f"File exceeds {config.MAX_UPLOAD_MB} MB limit.")
     return file.filename or "document", data
+
+
+def _resolve_doc(doc_id: str | None) -> Document:
+    """Find the document for this request: by id if given, else the latest upload."""
+    doc = store.get(doc_id) if doc_id else store.latest()
+    if doc is None:
+        detail = "Document not found. It may have expired — please upload it again." if doc_id else "Upload a document first."
+        raise HTTPException(400, detail)
+    return doc
 
 
 @app.get("/health")
@@ -57,9 +66,7 @@ async def upload(file: UploadFile = File(...)) -> dict:
 
 @app.post("/query")
 async def query(req: QueryRequest) -> dict:
-    doc = store.latest()
-    if doc is None:
-        raise HTTPException(400, "Upload a document first.")
+    doc = _resolve_doc(req.doc_id)
     try:
         name, result = await run_agent(req.agent_type, doc, req.query)
     except ValueError as exc:
@@ -86,11 +93,12 @@ async def compare(
 
 
 @app.get("/stats")
-async def stats() -> dict:
-    doc = store.latest()
+async def stats(doc_id: str | None = None) -> dict:
+    doc = store.get(doc_id) if doc_id else store.latest()
     return {
         "documents_loaded": len(store),
         "active_document": doc.filename if doc else None,
+        "doc_id": doc.doc_id if doc else None,
         "chunks": len(doc.chunks) if doc else 0,
         "model": config.GROQ_MODEL,
     }

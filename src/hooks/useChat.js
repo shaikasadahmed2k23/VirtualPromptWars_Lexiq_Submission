@@ -8,13 +8,13 @@ export function useChat() {
   const [messages, setMessages] = useState([])
   const [busy, setBusy] = useState(false)
 
-  const send = useCallback(async (text) => {
+  const send = useCallback(async (text, docId) => {
     const question = text.trim()
     if (!question || busy) return
     setMessages((m) => [...m, { id: uid(), role: 'user', text: question }])
     setBusy(true)
     try {
-      const data = await queryAgent(question, 'qa')
+      const data = await queryAgent(question, 'qa', docId)
       setMessages((m) => [...m, {
         id: uid(),
         role: 'assistant',

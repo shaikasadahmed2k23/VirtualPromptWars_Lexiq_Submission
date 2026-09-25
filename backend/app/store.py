@@ -83,6 +83,10 @@ class DocumentStore:
             self._docs.pop(next(iter(self._docs)))
         return doc
 
+    def get(self, doc_id: str) -> Document | None:
+        """Fetch a document by id, or None if it has been evicted."""
+        return self._docs.get(doc_id)
+
     def latest(self) -> Document | None:
         return self._docs.get(self._latest) if self._latest else None
 

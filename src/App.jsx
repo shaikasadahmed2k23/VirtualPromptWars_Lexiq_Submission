@@ -14,7 +14,14 @@ const NEEDS_DOCUMENT = new Set(['qa', 'clause', 'risk', 'summary'])
 
 export default function App() {
   const [page, setPage] = useState('upload')
-  const [doc, setDoc] = useState(null)
+  const [doc, setDoc] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('lexiq-doc')
+      return saved ? JSON.parse(saved) : null
+    } catch {
+      return null
+    }
+  })
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('lexiq-theme')
     if (saved) return saved === 'dark'
@@ -28,13 +35,25 @@ export default function App() {
   }, [darkMode])
 
   useEffect(() => {
+    if (doc) {
+      sessionStorage.setItem('lexiq-doc', JSON.stringify(doc))
+    } else {
+      sessionStorage.removeItem('lexiq-doc')
+    }
+  }, [doc])
+
+  useEffect(() => {
     fetchStats()
-      .then((s) => s.active_document && setDoc({ filename: s.active_document, chunks: s.chunks }))
+      .then((s) => {
+        if (s.active_document) {
+          setDoc({ filename: s.active_document, doc_id: s.doc_id, chunks: s.chunks })
+        }
+      })
       .catch(() => {})
   }, [])
 
   const handleUploaded = (info) => {
-    setDoc({ filename: info.filename, chunks: info.chunks, size: info.size })
+    setDoc({ filename: info.filename, doc_id: info.doc_id, chunks: info.chunks, size: info.size })
     chat.clear()
   }
 
@@ -55,11 +74,11 @@ export default function App() {
       case 'qa':
         return <QAPage doc={doc} chat={chat} />
       case 'clause':
-        return <ClausePage />
+        return <ClausePage doc={doc} />
       case 'risk':
-        return <RiskPage />
+        return <RiskPage doc={doc} />
       case 'summary':
-        return <SummaryPage />
+        return <SummaryPage doc={doc} />
       case 'compare':
         return <ComparePage />
       default:
