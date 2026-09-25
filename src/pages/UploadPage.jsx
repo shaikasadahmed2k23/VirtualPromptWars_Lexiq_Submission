@@ -70,6 +70,7 @@ export default function UploadPage({ doc, onUploaded, onNavigate }) {
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}>
         <input ref={inputRef} type="file" accept=".pdf,.txt" className="sr-only" tabIndex={-1}
+          aria-label="Choose a PDF or TXT file to upload"
           onChange={(e) => choose(e.target.files[0])} />
         <Icon name="upload" size={28} />
         <p className="dropzone__title">{file ? file.name : 'Drag and drop a PDF or TXT file'}</p>
